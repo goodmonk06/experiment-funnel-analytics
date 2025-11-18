@@ -1,9 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../db';
-
-interface CreateProjectBody {
-  name: string;
-}
+import { createProjectSchema } from '../validation/schemas';
+import { AppError } from '../utils/errors';
 
 export async function projectRoutes(app: FastifyInstance) {
   // List all projects
@@ -33,7 +31,7 @@ export async function projectRoutes(app: FastifyInstance) {
     });
 
     if (!project) {
-      return reply.status(404).send({ error: 'Project not found' });
+      throw new AppError(404, 'Project not found');
     }
 
     return reply.send({ project });
@@ -41,15 +39,11 @@ export async function projectRoutes(app: FastifyInstance) {
 
   // Create a new project
   app.post('/projects', async (request, reply) => {
-    const body = request.body as CreateProjectBody;
-
-    if (!body.name) {
-      return reply.status(400).send({ error: 'Project name is required' });
-    }
+    const validated = createProjectSchema.parse(request.body);
 
     const project = await prisma.project.create({
       data: {
-        name: body.name,
+        name: validated.name,
       },
     });
 
@@ -60,14 +54,10 @@ export async function projectRoutes(app: FastifyInstance) {
   app.delete('/projects/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    try {
-      await prisma.project.delete({
-        where: { id },
-      });
+    await prisma.project.delete({
+      where: { id },
+    });
 
-      return reply.send({ success: true });
-    } catch (error) {
-      return reply.status(404).send({ error: 'Project not found' });
-    }
+    return reply.send({ success: true });
   });
 }

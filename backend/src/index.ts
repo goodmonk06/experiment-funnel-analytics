@@ -5,6 +5,7 @@ import { ingestRoutes } from './routes/ingest';
 import { projectRoutes } from './routes/projects';
 import { funnelRoutes } from './routes/funnels';
 import { experimentRoutes } from './routes/experiments';
+import { errorHandler } from './utils/errors';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -26,6 +27,9 @@ async function main() {
   await app.register(cors, {
     origin: true,
   });
+
+  // Set error handler
+  app.setErrorHandler(errorHandler);
 
   // Connect to database
   await connectDB();

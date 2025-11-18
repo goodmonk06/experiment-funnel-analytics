@@ -1,54 +1,32 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../db';
 import { authenticateApiKey } from '../middleware/auth';
-
-interface IngestEventBody {
-  userId?: string;
-  anonymousId?: string;
-  event: string;
-  properties?: Record<string, any>;
-  timestamp?: string;
-}
+import { ingestEventSchema, ingestEventsSchema } from '../validation/schemas';
 
 export async function ingestRoutes(app: FastifyInstance) {
   app.post(
     '/ingest/event',
     { preHandler: authenticateApiKey },
     async (request, reply) => {
-      const body = request.body as IngestEventBody;
+      const validated = ingestEventSchema.parse(request.body);
       const project = (request as any).project;
 
-      // Validate required fields
-      if (!body.event) {
-        return reply.status(400).send({ error: 'Event name is required' });
-      }
+      const userIdOrAnonId = validated.userId || validated.anonymousId!;
 
-      const userIdOrAnonId = body.userId || body.anonymousId;
-      if (!userIdOrAnonId) {
-        return reply.status(400).send({
-          error: 'Either userId or anonymousId is required',
-        });
-      }
+      const event = await prisma.event.create({
+        data: {
+          projectId: project.id,
+          userIdOrAnonId,
+          name: validated.event,
+          propertiesJson: JSON.stringify(validated.properties || {}),
+          timestamp: validated.timestamp ? new Date(validated.timestamp) : new Date(),
+        },
+      });
 
-      try {
-        const event = await prisma.event.create({
-          data: {
-            projectId: project.id,
-            userIdOrAnonId,
-            name: body.event,
-            propertiesJson: JSON.stringify(body.properties || {}),
-            timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
-          },
-        });
-
-        return reply.status(201).send({
-          success: true,
-          eventId: event.id,
-        });
-      } catch (error) {
-        console.error('Error creating event:', error);
-        return reply.status(500).send({ error: 'Failed to create event' });
-      }
+      return reply.status(201).send({
+        success: true,
+        eventId: event.id,
+      });
     }
   );
 
@@ -57,34 +35,25 @@ export async function ingestRoutes(app: FastifyInstance) {
     '/ingest/events',
     { preHandler: authenticateApiKey },
     async (request, reply) => {
-      const body = request.body as { events: IngestEventBody[] };
+      const validated = ingestEventsSchema.parse(request.body);
       const project = (request as any).project;
 
-      if (!Array.isArray(body.events) || body.events.length === 0) {
-        return reply.status(400).send({ error: 'Events array is required' });
-      }
+      const events = validated.events.map((evt) => ({
+        projectId: project.id,
+        userIdOrAnonId: evt.userId || evt.anonymousId!,
+        name: evt.event,
+        propertiesJson: JSON.stringify(evt.properties || {}),
+        timestamp: evt.timestamp ? new Date(evt.timestamp) : new Date(),
+      }));
 
-      try {
-        const events = body.events.map((evt) => ({
-          projectId: project.id,
-          userIdOrAnonId: evt.userId || evt.anonymousId || '',
-          name: evt.event,
-          propertiesJson: JSON.stringify(evt.properties || {}),
-          timestamp: evt.timestamp ? new Date(evt.timestamp) : new Date(),
-        }));
+      await prisma.event.createMany({
+        data: events,
+      });
 
-        await prisma.event.createMany({
-          data: events,
-        });
-
-        return reply.status(201).send({
-          success: true,
-          count: events.length,
-        });
-      } catch (error) {
-        console.error('Error creating events:', error);
-        return reply.status(500).send({ error: 'Failed to create events' });
-      }
+      return reply.status(201).send({
+        success: true,
+        count: events.length,
+      });
     }
   );
 }

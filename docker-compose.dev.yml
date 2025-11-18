@@ -1,0 +1,25 @@
+version: '3.8'
+
+# For local development - only runs PostgreSQL
+# Use this with: docker compose -f docker-compose.dev.yml up -d
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: analytics-postgres-dev
+    environment:
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: analytics
+      POSTGRES_DB: analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
