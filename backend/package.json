@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.4.2",
+    "@prisma/client": "^5.7.1",
+    "fastify": "^4.25.1",
+    "nanoid": "^3.3.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "prisma": "^5.7.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

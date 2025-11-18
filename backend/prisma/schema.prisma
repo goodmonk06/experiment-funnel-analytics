@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  apiKey    String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events                    Event[]
+  funnelDefinitions         FunnelDefinition[]
+  experimentDefinitions     ExperimentDefinition[]
+  userExperimentAssignments UserExperimentAssignment[]
+
+  @@map("projects")
+}
+
+model Event {
+  id               String   @id @default(cuid())
+  projectId        String
+  userIdOrAnonId   String
+  name             String
+  propertiesJson   String   @default("{}")
+  timestamp        DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, name, timestamp])
+  @@index([projectId, userIdOrAnonId, timestamp])
+  @@map("events")
+}
+
+model FunnelDefinition {
+  id         String   @id @default(cuid())
+  projectId  String
+  name       String
+  stepsJson  String   // JSON array of event names: ["page_view", "signup", "subscribe"]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("funnel_definitions")
+}
+
+model ExperimentDefinition {
+  id           String   @id @default(cuid())
+  projectId    String
+  key          String   // e.g., "button_color_test"
+  variantsJson String   // JSON array: ["control", "variant_a", "variant_b"]
+  status       String   @default("active") // "active", "paused", "completed"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
+  @@index([projectId, status])
+  @@map("experiment_definitions")
+}
+
+model UserExperimentAssignment {
+  id              String   @id @default(cuid())
+  projectId       String
+  experimentKey   String
+  userIdOrAnonId  String
+  variant         String
+  assignedAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, experimentKey, userIdOrAnonId])
+  @@index([projectId, experimentKey])
+  @@map("user_experiment_assignments")
+}

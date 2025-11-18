@@ -1,0 +1,21 @@
+{
+  "name": "@experiment-analytics/sdk-node",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/node-fetch": "^2.6.9",
+    "typescript": "^5.3.3"
+  }
+}
